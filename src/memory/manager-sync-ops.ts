@@ -258,7 +258,11 @@ export abstract class MemoryManagerSyncOps {
     const dir = path.dirname(dbPath);
     ensureDir(dir);
     const { DatabaseSync } = requireNodeSqlite();
-    return new DatabaseSync(dbPath, { allowExtension: this.settings.store.vector.enabled });
+    const db = new DatabaseSync(dbPath, { allowExtension: this.settings.store.vector.enabled });
+    // Set busy_timeout to handle concurrent access from multiple processes
+    // (gateway, cron agents, subagents) hitting the same SQLite file
+    db.exec("PRAGMA busy_timeout = 5000");
+    return db;
   }
 
   private seedEmbeddingCache(sourceDb: DatabaseSync): void {
